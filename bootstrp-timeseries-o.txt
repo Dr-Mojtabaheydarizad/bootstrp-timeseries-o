@@ -1,0 +1,70 @@
+#Install packages
+install.packages("boot")
+install.packages("readr")
+
+#Load the biwavelet library
+library(boot)
+library(readr)
+
+# Load data
+path <- "C:\\Education\\Education\\Upcoming papers\\Geothermale\\Water journal\\Water"
+setwd("C:\\Education\\Education\\Upcoming papers\\Geothermale\\Water journal\\Water")
+
+z <- read_csv("oo.csv")
+
+# Define a function to calculate the mean of the time series
+mean_function <- function(data, indices) {
+  return(mean(data[indices]))
+}
+
+# Load your time series data into a vector
+data <- z$YXG # replace this with your actual data
+
+# Set the window size
+window_size <- 3
+
+# Initialize vectors to store the upper and lower confidence intervals
+ci_upper_95 <- rep(NA, length(data))
+ci_lower_95 <- rep(NA, length(data))
+ci_upper_05 <- rep(NA, length(data))
+ci_lower_05 <- rep(NA, length(data))
+
+# Loop over each time point in the data
+for (i in seq(window_size, length(data))) {
+  # Get the data for the current window
+  window_data <- data[(i-window_size+1):i]
+  
+  # Perform bootstrapping with 1000 replications
+  reps <- boot(data=window_data, statistic=mean_function, R=1000)
+  
+  # Print the reps object
+  print(reps)
+  
+  # Calculate the 95% and 5% confidence intervals
+ci95 <- boot.ci(reps, conf = 0.95, type = "perc")
+  ci05 <- boot.ci(reps, conf = 0.05, type = "perc")
+  
+  # Store the upper and lower confidence intervals
+  ci_upper_95[i] <- ci95[4]
+  ci_lower_95[i] <- ci95[5]
+  ci_upper_05[i] <- ci05[4]
+  ci_lower_05[i] <- ci05[5]
+}
+
+# Print the upper and lower confidence intervals
+print(ci_upper_95)
+print(ci_lower_95)
+print(ci_upper_05)
+print(ci_lower_05)
+
+# Create a data frame with the confidence interval data
+ci_data <- data.frame(
+  time = seq(window_size, length(data)),
+  ci_upper_95 = ci_upper_95[window_size:length(data)],
+  ci_lower_95 = ci_lower_95[window_size:length(data)],
+  ci_upper_05 = ci_upper_05[window_size:length(data)],
+  ci_lower_05 = ci_lower_05[window_size:length(data)]
+)
+
+# Write the data frame to a CSV file in a specific directory
+write.csv(ci_data, file = "C:\\Education\\Education\\postdoc-Mahidol-Thiland\\confidence_intervals.csv", row.names = FALSE)
